@@ -649,17 +649,34 @@ function setUpdateStatus(cls, msg) {
 }
 
 function tryAutoUpdate() {
-    fetch(serverBase + '/download_csv.php')
+    fetch(serverBase + '/check_update.php')
         .then(function(r) { return r.json(); })
-        .then(function(result) {
-            if (result.status === 'skip') {
-                setUpdateStatus('ok', 'נתונים עדכניים (לפני ' + result.age_minutes + ' דקות)');
-            } else if (result.status === 'ok') {
-                setUpdateStatus('ok', result.message);
-                loadData();
-            } else {
-                setUpdateStatus('pending', result.message || 'שגיאה בעדכון');
+        .then(function(info) {
+            if (!info.need_update) {
+                setUpdateStatus('ok', 'נתונים עדכניים (לפני ' + info.age_minutes + ' דקות)');
+                return;
             }
+            setUpdateStatus('updating', 'מעדכן נתונים...');
+            return fetch(csvDownloadUrl)
+                .then(function(r) {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.text();
+                })
+                .then(function(csv) {
+                    if (!csv || csv.length < 1000) throw new Error('CSV too small');
+                    return fetch(serverBase + '/receive_csv.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/csv' },
+                        body: csv
+                    });
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(result) {
+                    if (result.status === 'ok') {
+                        setUpdateStatus('ok', result.message);
+                        loadData();
+                    }
+                });
         })
         .catch(function(err) {
             console.log('Auto-update skipped: ' + err.message);

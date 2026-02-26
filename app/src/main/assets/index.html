@@ -339,7 +339,7 @@ function doSearch() {
     }
 
     // Find exact match first
-    var exact = allData.find(function(r) { return r.series.toUpperCase() === q; });
+    var exact = allData.find(function(r) { return String(r.series).toUpperCase() === q; });
 
     if (exact) {
         // Show detailed view for this series
@@ -351,7 +351,7 @@ function doSearch() {
         isSearchMode = true;
         document.getElementById('resetBtn').classList.add('visible');
         filteredData = allData.filter(function(r) {
-            return r.series.toUpperCase().indexOf(q) !== -1;
+            return String(r.series).toUpperCase().indexOf(q) !== -1;
         });
 
         if (filteredData.length === 1) {
@@ -377,7 +377,7 @@ function resetSearch() {
 
 function renderSeriesDetail(series) {
     var seriesPerms = allDetails.filter(function(d) {
-        return d.series === series.series;
+        return String(d.series) === String(series.series);
     });
 
     // Sort perms by count descending
@@ -433,7 +433,7 @@ function sortData() {
         var va = a[col], vb = b[col];
         if (va === null) va = -9999999;
         if (vb === null) vb = -9999999;
-        if (col === 'series') return dir * va.localeCompare(vb);
+        if (col === 'series') return dir * String(va).localeCompare(String(vb));
         return dir * (va - vb);
     });
 }
@@ -497,7 +497,7 @@ function renderTable() {
 }
 
 function viewSeries(seriesName) {
-    var s = allData.find(function(r) { return r.series === seriesName; });
+    var s = allData.find(function(r) { return String(r.series) === String(seriesName); });
     if (s) {
         document.getElementById('searchInput').value = seriesName;
         document.getElementById('resetBtn').classList.add('visible');

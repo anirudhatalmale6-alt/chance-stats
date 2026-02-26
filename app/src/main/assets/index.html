@@ -268,13 +268,128 @@ tr:nth-child(even) td { background: #fafafa; }
     background: #e94560;
     border-radius: 3px;
 }
+
+/* Hamburger menu */
+.menu-btn {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    z-index: 101;
+}
+.menu-btn span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: #fff;
+    margin: 5px 0;
+    border-radius: 1px;
+}
+.header { position: relative; }
+
+/* Side drawer */
+.drawer-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 200;
+}
+.drawer-overlay.open { display: block; }
+.drawer {
+    position: fixed;
+    top: 0;
+    right: -280px;
+    width: 280px;
+    height: 100%;
+    background: #fff;
+    z-index: 201;
+    transition: right 0.3s ease;
+    box-shadow: -4px 0 15px rgba(0,0,0,0.15);
+    overflow-y: auto;
+}
+.drawer.open { right: 0; }
+.drawer-header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: #fff;
+    padding: 20px 16px;
+    text-align: center;
+}
+.drawer-header h3 { font-size: 16px; margin-bottom: 4px; }
+.drawer-close {
+    position: absolute;
+    left: 12px;
+    top: 12px;
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px 8px;
+}
+.drawer-item {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f0f0f0;
+}
+.drawer-item .drawer-label {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 4px;
+}
+.drawer-item .drawer-value {
+    font-size: 18px;
+    font-weight: bold;
+    color: #1a1a2e;
+    direction: ltr;
+    text-align: right;
+}
+.drawer-item .drawer-value.highlight {
+    color: #e94560;
+    font-size: 22px;
+}
+.update-status {
+    padding: 8px 12px;
+    margin: 12px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    text-align: center;
+}
+.update-status.ok { background: #e8f5e9; color: #2e7d32; }
+.update-status.pending { background: #fff3e0; color: #e65100; }
+.update-status.updating { background: #e3f2fd; color: #1565c0; }
 </style>
 </head>
 <body>
 
 <div class="header">
+    <button class="menu-btn" onclick="toggleDrawer()"><span></span><span></span><span></span></button>
     <h1>סטטיסטיקת הגרלות</h1>
     <div class="subtitle">טבלת סיכום סדרות</div>
+</div>
+
+<div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
+<div class="drawer" id="drawer">
+    <div class="drawer-header" style="position:relative">
+        <button class="drawer-close" onclick="toggleDrawer()">X</button>
+        <h3>מידע</h3>
+    </div>
+    <div class="drawer-item">
+        <div class="drawer-label">הגרלה אחרונה במערכת</div>
+        <div class="drawer-value highlight" id="drawerLastDraw">-</div>
+    </div>
+    <div class="drawer-item">
+        <div class="drawer-label">סה"כ סדרות</div>
+        <div class="drawer-value" id="drawerTotalSeries">-</div>
+    </div>
+    <div class="drawer-item">
+        <div class="drawer-label">סה"כ שורות מקור</div>
+        <div class="drawer-value" id="drawerTotalRows">-</div>
+    </div>
+    <div id="drawerUpdateInfo"></div>
 </div>
 
 <div class="search-bar">
@@ -323,6 +438,10 @@ function loadData() {
             document.getElementById('statRows').textContent = data.totalRows || '-';
             document.getElementById('statLast').textContent = data.lastDraw || '-';
             document.getElementById('statsBar').style.display = 'flex';
+            // Update drawer
+            document.getElementById('drawerLastDraw').textContent = data.lastDraw || '-';
+            document.getElementById('drawerTotalSeries').textContent = allData.length;
+            document.getElementById('drawerTotalRows').textContent = data.totalRows || '-';
             filteredData = allData.slice();
             sortData();
             renderTable();
@@ -518,12 +637,26 @@ function nextPage() {
     if (currentPage < totalPages - 1) { currentPage++; renderTable(); window.scrollTo(0, 0); }
 }
 
+// === Drawer ===
+function toggleDrawer() {
+    document.getElementById('drawer').classList.toggle('open');
+    document.getElementById('drawerOverlay').classList.toggle('open');
+}
+
 // === Auto-update: user's device downloads CSV and sends to server ===
+function setUpdateStatus(cls, msg) {
+    document.getElementById('drawerUpdateInfo').innerHTML = '<div class="update-status ' + cls + '">' + msg + '</div>';
+}
+
 function tryAutoUpdate() {
     fetch(serverBase + '/check_update.php')
         .then(function(r) { return r.json(); })
         .then(function(info) {
-            if (!info.need_update) return;
+            if (!info.need_update) {
+                setUpdateStatus('ok', 'נתונים עדכניים (לפני ' + info.age_minutes + ' דקות)');
+                return;
+            }
+            setUpdateStatus('updating', 'מעדכן נתונים...');
             console.log('Auto-update: downloading CSV from pais.co.il...');
             return fetch(csvDownloadUrl)
                 .then(function(r) {
@@ -542,11 +675,15 @@ function tryAutoUpdate() {
                 .then(function(r) { return r.json(); })
                 .then(function(result) {
                     console.log('Auto-update: ' + result.message);
-                    if (result.status === 'ok') loadData(); // Refresh with new data
+                    if (result.status === 'ok') {
+                        setUpdateStatus('ok', 'עודכן! ' + result.message);
+                        loadData();
+                    }
                 });
         })
         .catch(function(err) {
             console.log('Auto-update skipped: ' + err.message);
+            setUpdateStatus('pending', 'עדכון אוטומטי לא זמין');
         });
 }
 </script>

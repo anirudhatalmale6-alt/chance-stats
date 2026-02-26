@@ -177,35 +177,6 @@ tr:active td { background: #e3f2fd; }
     font-size: 13px;
     color: #666;
 }
-.settings-bar {
-    padding: 8px 16px;
-    background: #fff;
-    border-bottom: 1px solid #e0e0e0;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-.settings-bar label { font-size: 12px; color: #666; }
-.settings-bar input {
-    padding: 6px 10px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: 13px;
-    width: 100%;
-    flex: 1;
-    text-align: right;
-    direction: ltr;
-}
-.settings-bar button {
-    padding: 6px 16px;
-    background: #e94560;
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    font-size: 12px;
-    white-space: nowrap;
-    cursor: pointer;
-}
 </style>
 </head>
 <body>
@@ -213,12 +184,6 @@ tr:active td { background: #e3f2fd; }
 <div class="header">
     <h1>סטטיסטיקת הגרלות</h1>
     <div class="subtitle">טבלת סיכום סדרות</div>
-</div>
-
-<div class="settings-bar" id="settingsBar">
-    <label>כתובת API:</label>
-    <input type="text" id="apiUrl" placeholder="https://example.com/api.php">
-    <button onclick="saveAndLoad()">טען</button>
 </div>
 
 <div class="search-bar">
@@ -234,7 +199,7 @@ tr:active td { background: #e3f2fd; }
 <div id="content">
     <div class="loading" id="loadingState">
         <div class="spinner"></div>
-        <div>הגדר כתובת API למעלה ולחץ "טען"</div>
+        <div>טוען נתונים...</div>
     </div>
 </div>
 
@@ -245,25 +210,12 @@ var currentPage = 0;
 var pageSize = 50;
 var sortCol = 'total';
 var sortDir = -1; // -1 = desc
-var apiUrl = '';
+var apiUrl = 'http://172.236.22.5/130API.php';
 
-// Load saved API URL
-var saved = localStorage.getItem('chanceApiUrl');
-if (saved) {
-    document.getElementById('apiUrl').value = saved;
-    apiUrl = saved;
-    loadData();
-}
-
-function saveAndLoad() {
-    apiUrl = document.getElementById('apiUrl').value.trim();
-    if (!apiUrl) return;
-    localStorage.setItem('chanceApiUrl', apiUrl);
-    loadData();
-}
+// Auto-load on startup
+loadData();
 
 function loadData() {
-    if (!apiUrl) return;
     document.getElementById('content').innerHTML = '<div class="loading"><div class="spinner"></div><div>טוען נתונים...</div></div>';
     document.getElementById('statsBar').style.display = 'none';
 
@@ -276,19 +228,13 @@ function loadData() {
             document.getElementById('statRows').textContent = data.totalRows || '-';
             document.getElementById('statLast').textContent = data.lastDraw || '-';
             document.getElementById('statsBar').style.display = 'flex';
-            document.getElementById('settingsBar').style.display = 'none';
             filterData();
         })
         .catch(function(err) {
             document.getElementById('content').innerHTML =
                 '<div class="error">שגיאה בטעינת נתונים<br><small>' + err.message + '</small>' +
-                '<br><button class="retry-btn" onclick="loadData()">נסה שוב</button>' +
-                '<br><br><button class="retry-btn" onclick="showSettings()" style="background:#607D8B;">שנה כתובת API</button></div>';
+                '<br><button class="retry-btn" onclick="loadData()">נסה שוב</button></div>';
         });
-}
-
-function showSettings() {
-    document.getElementById('settingsBar').style.display = 'flex';
 }
 
 function filterData() {

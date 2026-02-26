@@ -186,8 +186,9 @@ tr:active td { background: #e3f2fd; }
     <div class="subtitle">טבלת סיכום סדרות</div>
 </div>
 
-<div class="search-bar">
-    <input type="text" id="searchInput" placeholder="חיפוש סדרה..." oninput="filterData()">
+<div class="search-bar" style="display:flex;gap:8px;align-items:center;">
+    <input type="text" id="searchInput" placeholder="חיפוש סדרה..." onkeydown="if(event.key==='Enter'){filterData();this.blur();}">
+    <button onclick="filterData()" style="padding:10px 20px;background:#e94560;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:bold;white-space:nowrap;cursor:pointer;">חפש</button>
 </div>
 
 <div class="stats-bar" id="statsBar" style="display:none;">
